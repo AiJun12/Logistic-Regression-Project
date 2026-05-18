@@ -179,7 +179,28 @@ Apply a random forest of classification trees using Churn as the target (or resp
 Q1. Experiment with the number of variables per tree (tune on mtry) to recommend a random forest model. What is the optimal number of parameters to be included?
 
 ```{r}
+library(randomForest)
 
+set.seed(123)
+
+rfGrid <- expand.grid(
+  mtry = c(2,3,4,5,6,7,8)
+)
+
+rf_model <- train(
+  Churn ~ .,
+  data = train_data,
+  method = "rf",
+  metric = "ROC",
+  tuneGrid = rfGrid,
+  trControl = ctrl
+)
+
+rf_model
+
+plot(rf_model)
+
+rf_model$bestTune
 
 ```
 
@@ -188,7 +209,25 @@ Q1. Experiment with the number of variables per tree (tune on mtry) to recommend
 Q2. What is the accuracy, sensitivity and ROC of the test set?
 
 ```{r}
+rf_pred <- predict(rf_model,
+                   newdata = test_data)
 
+rf_prob <- predict(rf_model,
+                   newdata = test_data,
+                   type = "prob")
+
+confusionMatrix(rf_pred,
+                test_data$Churn,
+                positive = "Yes")
+
+roc_auc(
+  data.frame(
+    truth = test_data$Churn,
+    .pred_Yes = rf_prob$Yes
+  ),
+  truth = truth,
+  .pred_Yes
+)
 
 ```
 
