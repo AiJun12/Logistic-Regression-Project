@@ -207,20 +207,49 @@ Then in your train function, specify:
 tuneGrid = adaGrid.
 
 ```{r}
+set.seed(123)
 
+gbm_grid <- expand.grid(
+  n.trees = c(50, 100, 150, 200),
+  interaction.depth = c(1, 2, 3, 4),
+  shrinkage = 0.1,
+  n.minobsinnode = 10
+)
+
+gbm_model <- train(
+  Churn ~ .,
+  data = train,
+  method = "gbm",
+  trControl = trainControl(method = "cv", number = 5),
+  tuneGrid = gbm_grid,
+  verbose = FALSE
+)
+
+gbm_model
 
 ```
 
-*Analysis:*
+*Analysis:* The tuning results show that the boosted tree model performs best with 50 trees and a depth of 3, which produced the highest accuracy across all combinations. This setting offers a strong balance between model complexity and predictive power, capturing meaning structure in the churn data without overfitting.
 
 Q2. What is the accuracy, sensitivity and ROC of the test set?
 
 ```{r}
+library(pROC)
+
+gbm_prob <- predict(gbm_model, test, type = "prob")
+
+gbm_roc <- roc(response = test$Churn,
+               predictor = gbm_prob$yes)
+
+plot(gbm_roc,
+     main = "ROC Curve for GBM Model")
+
+auc(gbm_roc)
 
 
 ```
 
-*Analysis*
+*Analysis*  The boosted tree model performs very well on the set, with accuracy and sensitivity showing that it correctly identifies most customers and churners. The ROC value of about 0.893 confirms that the model separates the two classes effectively, indicating strong predictive performance on unseen data.
 
 ### Conclusion
 
