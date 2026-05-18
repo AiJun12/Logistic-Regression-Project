@@ -293,3 +293,6 @@ auc(gbm_roc)
 ### Conclusion
 
 Q1. Which of the above models would you choose to deploy and why?
+
+Analysis: We selected the boosted tree model for deployment because it achieved the best overall performance in terms of accuracy and AUC. The higher AUC value indicates stronger classification ability and better separation between churn and non-churn customers. Therefore, the model is expected to generalize well to unseen data and improve prediction accuracy when identifying customers who are likely to cancel their service.
+
