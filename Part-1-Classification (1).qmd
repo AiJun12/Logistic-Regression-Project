@@ -2,6 +2,7 @@
 title: "Exam 2: Part 1- Classification"
 format: html
 editor: visual
+author: Andrew
 ---
 
 **Cellphone Customer Retention.** Telecommunications companies providing cell-phone service are interested in customer retention. In particular, identifying customers who are about to churn (cancel their service) is potentially worth millions of dollars if the company can proactively address the reason that customer is considering cancellation and retain the customer. Data on past customers (some of whom churned and some who did not) has been collected. The variables in this data are listed in the following table.
@@ -34,6 +35,8 @@ library(caret)
 library(yardstick)
 library(skimr)
 library(broom)
+library(corrplot)
+library(pROC)
 
 # Any other libraries if needed....
 ```
@@ -52,42 +55,122 @@ Q1. Explore the data. Provide some initial tables or summaries of your variables
 Hint: You can use dplyr(). Are certain pairs of variables highly correlated? You might want to use only one of each in your analysis when doing logistic regression though that will not matter for trees.
 
 ```{r}
-glimpse(df)
+# overview of data layout.
+skim(df)
+
+# Analyze min and max for each of variables.
+summary(df)
+
+#check of the data structure
+str(df)
+
+# Convert churn into factor variale
+df$Churn<- factor(df$Churn,
+                 levels = c(1,0),
+                 labels= c("Churn","NoChurn"))
+    
+
+#mean of each vars by churn group
+
+df_summary <- df %>%
+  group_by(Churn) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE))
+
 
 ```
 
-***Analysis here***
-
-*(Note: For each part, you can have multiple code chunks and text pieces. Use this space like an OP Word document where you write your thoughts, put in some code and then do some analysis in a fluid manner.)*
+***Analysis:*** Ans:When I skim the data, there are 10 predictors and 1 response variable. We have total 2,151 rows and 11 columns. The avg customers spend on their phone is 184 mins and avg call is 100 calls.Avg 10 overduefee in in a month. Dataplan and monthly monthly charge are highly corrlated, so we are going to drop out those two for our logistic regression model.
 
 Q2. Appropriately partition the data set into training and test sets (60-40 split). Use the createDataPartition(). The test set will not be used in building the model but only to test the quality of your final models in each of the following questions.
 
 ```{r}
+#partition data into 60 and 40 split
+set.seed(34)
 
+DataPatition<- createDataPartition(df$Churn,
+                            p=0.6,
+                            list=FALSE)
+ChurnTrain<-df[DataPatition,]
+ChurnTest<-df[-DataPatition,]
+
+# confirm the split size
+nrow(ChurnTrain)
+nrow(ChurnTest)
 
 ```
 
-*Analysis:*
+*Analysis:* We will split the dataset into a 60% training set and a 40% test set. The training set will be used to build the model, while the test set will be used to evaluate how well the model performs on unseen data. This approach helps assess the model’s ability to generalize and provides an unbiased measure of predictive accuracy.
 
 ### Section 2: Logistic Regression
 
 Q1.Evaluate several candidate models based on their predictive performance on the validation set using five-fold cross validation method. Recommend a final model and express the model as a mathematical equation relating the target variable to the input variables (report in terms of odds ratios). Do the relationships suggested by the model make sense? Try to explain them.
 
 ```{r}
+# train control
+ctrl <- trainControl(method = "cv",
+                     number = 5,
+                     classProbs = TRUE,
+                     summaryFunction = twoClassSummary)
 
+# Model 1 - all variables
+logist.reg1 <- train(Churn ~ .,
+                     data = ChurnTrain,
+                     method = "glm",
+                     family = "binomial",
+                     trControl = ctrl,
+                     metric = "ROC")
+
+# Model 2 - drop correlated vars (DataPlan, MonthlyCharge)
+logist.reg2 <- train(Churn ~ . -DataPlan -MonthlyCharge,
+                     data = ChurnTrain,
+                     method = "glm",
+                     family = "binomial",
+                     trControl = ctrl,
+                     metric = "ROC")
+# Model 3 - top predictors only
+logist.reg3 <- train(Churn ~ DayMins + CustServCalls + ContractRenewal + DataUsage + OverageFee,
+                     data = ChurnTrain,
+                     method = "glm",
+                     family = "binomial",
+                     trControl = ctrl,
+                     metric = "ROC")
+
+results <- resamples(list(AllVars = logist.reg1, ReducedVars = logist.reg2, TopPredictors = logist.reg3))
+
+# Compare all three models
+summary(results)
+
+# Coefficients and odds ratios for final model (Model 2 - ReducedVars)
+tidy(logist.reg2$finalModel)
+tidy(logist.reg2$finalModel, exponentiate = TRUE)
 
 ```
 
-*Analysis:*
+*Analysis:* Across all three models, we used five-fold cross validation to compare performance. Model 1 used all predictors and had the highest mean ROC of 0.814. Model 2 removed the correlated variables DataPlan and MonthlyCharge, producing a slightly lower mean ROC of 0.811. Model 3 used only the top five predictors and had the lowest mean ROC of 0.809. Although Model 1 had the highest ROC, Model 2 is recommended as the final model because its ROC is very close to Model 1, while also reducing multicollinearity and improving interpretability.
 
 Q2. What is the AUC for the ROC curve for the final model from part (1) on the test set?
 
 ```{r}
+# predict probabilities from the final model
+preds_prob <- predict(logist.reg2, 
+                      newdata = ChurnTest, 
+                      type = "prob")
+
+# ROC curve
+roc_model2 <- roc(response = ChurnTest$Churn,
+                  predictor = preds_prob$Churn)
+
+# Plot ROC curve
+plot(roc_model2,
+     main = "ROC Curve for Logistic Regression Model 2")
+
+# AUC value
+auc(roc_model2)
 
 
 ```
 
-*Analysis:*
+*Analysis:* The final model (Model 2), which removed the two highly correlated predictors, achieved an AUC of 0.794 on the test set. This means the model correctly ranks a randomly selected churner above a randomly selected non-churner about 79% of the time. This is consistent with the cross-validation ROC of 0.813, indicating the model generalizes reasonably well to unseen data without significant overfitting.
 
 ### Section 3: Random Forest
 
