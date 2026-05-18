@@ -1,0 +1,144 @@
+---
+title: "Exam 2: Part 1- Classification"
+format: html
+editor: visual
+---
+
+**Cellphone Customer Retention.** Telecommunications companies providing cell-phone service are interested in customer retention. In particular, identifying customers who are about to churn (cancel their service) is potentially worth millions of dollars if the company can proactively address the reason that customer is considering cancellation and retain the customer. Data on past customers (some of whom churned and some who did not) has been collected. The variables in this data are listed in the following table.
+
+**Churn 1** if customer cancelled service, 0 if not
+
+**AccountWeeks** number of weeks customer has had active account
+
+**ContractRenewal** 1 if customer recently renewed contract, 0 if not
+
+**DataPlan** 1 if customer has data plan, 0 if not
+
+**DataUsage** gigabytes of monthly data usage
+
+**CustServCalls** number of calls into customer service DayMins average daytime minutes per month
+
+**DayCalls** average number of daytime calls
+
+**MonthlyCharge** average monthly bill
+
+**OverageFee** largest overage fee in last 12 months
+
+**RoamMins** average number of roaming minutes
+
+First, import all the necessary libraries for a classification problem
+
+```{r}
+library(tidyverse)
+library(caret)
+library(yardstick)
+library(skimr)
+library(broom)
+
+# Any other libraries if needed....
+```
+
+Import the data
+
+```{r}
+
+df <- read_csv("cellphone.csv")
+```
+
+### Section 1
+
+Q1. Explore the data. Provide some initial tables or summaries of your variables as they pertain to churn/not churn. Also, convert churn to a factor with the target level of 1 and the first value.
+
+Hint: You can use dplyr(). Are certain pairs of variables highly correlated? You might want to use only one of each in your analysis when doing logistic regression though that will not matter for trees.
+
+```{r}
+glimpse(df)
+
+```
+
+***Analysis here***
+
+*(Note: For each part, you can have multiple code chunks and text pieces. Use this space like an OP Word document where you write your thoughts, put in some code and then do some analysis in a fluid manner.)*
+
+Q2. Appropriately partition the data set into training and test sets (60-40 split). Use the createDataPartition(). The test set will not be used in building the model but only to test the quality of your final models in each of the following questions.
+
+```{r}
+
+
+```
+
+*Analysis:*
+
+### Section 2: Logistic Regression
+
+Q1.Evaluate several candidate models based on their predictive performance on the validation set using five-fold cross validation method. Recommend a final model and express the model as a mathematical equation relating the target variable to the input variables (report in terms of odds ratios). Do the relationships suggested by the model make sense? Try to explain them.
+
+```{r}
+
+
+```
+
+*Analysis:*
+
+Q2. What is the AUC for the ROC curve for the final model from part (1) on the test set?
+
+```{r}
+
+
+```
+
+*Analysis:*
+
+### Section 3: Random Forest
+
+Apply a random forest of classification trees using Churn as the target (or response) variable and all the other variables as input variables. Note: You do not need parallel computing for this dataset.
+
+Q1. Experiment with the number of variables per tree (tune on mtry) to recommend a random forest model. What is the optimal number of parameters to be included?
+
+```{r}
+
+
+```
+
+*Analysis:*
+
+Q2. What is the accuracy, sensitivity and ROC of the test set?
+
+```{r}
+
+
+```
+
+*Analysis:*
+
+### Section 4: Boosted Tree (GBM)
+
+Apply a set of boosted classification trees using Churn as the target (or response) variable and all the other variables as input variables. Note: You do not need parallel computing for this dataset.
+
+Q1. Experiment with different number of trees and depth. For example (try different values in addition to or other than these),
+
+adaGrid \<- expand.grid(mfinal = c(2, 3, 4, 5), maxdepth = c(100, 150, 300, 450))
+
+Then in your train function, specify:
+
+tuneGrid = adaGrid.
+
+```{r}
+
+
+```
+
+*Analysis:*
+
+Q2. What is the accuracy, sensitivity and ROC of the test set?
+
+```{r}
+
+
+```
+
+*Analysis*
+
+### Conclusion
+
+Q1. Which of the above models would you choose to deploy and why?
